@@ -1,0 +1,52 @@
+/* Make placeholder text white for the search bar */
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.9) !important;
+  opacity: 1;
+}
+
+/* Extra compatibility */
+.search-input::-webkit-input-placeholder {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+.search-input:-ms-input-placeholder {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+/* Sidebar container */
+.sidebar {
+  width: 260px;
+  background: radial-gradient(circle at top left, #020617 0, #020617 45%, #020617 100%);
+  border-right: 1px solid rgba(31, 41, 55, 1);
+  box-shadow: 8px 0 18px rgba(0, 0, 0, 0.55);
+}
+
+/* Base link style */
+.sidebar-link {
+  color: #9ca3af;
+  border-radius: 9999px;
+  padding: 8px 12px;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+  font-size: 14px;
+}
+
+/* Icons follow link color */
+.sidebar-link svg {
+  color: currentColor;
+}
+
+/* Hover state */
+.sidebar-link:hover {
+  background: rgba(31, 41, 55, 0.95);
+  color: #e5e7eb;
+  transform: translateX(3px);
+}
+
+/* Active route */
+.sidebar-link-active {
+  background: linear-gradient(90deg, #0f172a, #1f2937);
+  color: #e5e7eb !important;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.9);
+}
