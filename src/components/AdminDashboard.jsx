@@ -121,7 +121,7 @@ export default function AdminDashboard({ user, onLogout }) {
     setError(''); setLoading(true);
     try {
       const r = await axios.get('/api/vehicles/admin-summary');
-      setVehicles(r.data);
+      setVehicles(r.data.data);
       setLastRefresh(new Date());
     } catch (e) {
       if (e.response?.status === 401) { onLogout(); return; }

@@ -285,7 +285,7 @@ export default function LoginModal({ onLogin }) {
     setError(''); setLoading(true);
     try {
       const res = await axios.post('/api/auth/login', { email, password });
-      onLogin(res.data.user);
+      onLogin({ ...res.data.user, token: res.data.token });
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid credentials. Please try again.');
     } finally { setLoading(false); }

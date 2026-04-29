@@ -69,7 +69,7 @@ export default function CustomerDashboard({ user, onLogout }) {
 
   async function load() {
     setError(''); setLoading(true);
-    try { const r = await axios.get('/api/vehicles/my'); setVehicles(r.data); }
+    try { const r = await axios.get('/api/vehicles/my'); setVehicles(r.data.data); }
     catch (e) { if (e.response?.status===401) { onLogout(); return; } setError('Failed to load your vehicles.'); }
     finally { setLoading(false); }
   }

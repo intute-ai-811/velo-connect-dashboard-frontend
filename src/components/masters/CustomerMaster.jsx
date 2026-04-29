@@ -29,7 +29,7 @@ export default function CustomerMaster({ user, onLogout }) {
 
   async function load() {
     setLoading(true);
-    try { const r = await axios.get('/api/admin/customers'); setCustomers(r.data); }
+    try { const r = await axios.get('/api/admin/customers'); setCustomers(r.data.data); }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);

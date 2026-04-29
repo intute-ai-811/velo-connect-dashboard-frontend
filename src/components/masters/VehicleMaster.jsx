@@ -28,7 +28,7 @@ export default function VehicleMaster({ user, onLogout }) {
 
   async function load() {
     setLoading(true);
-    try { const [vR,cR] = await Promise.all([axios.get('/api/admin/vehicles'),axios.get('/api/admin/customers')]); setVehicles(vR.data); setCustomers(cR.data); }
+    try { const [vR,cR] = await Promise.all([axios.get('/api/admin/vehicles'),axios.get('/api/admin/customers')]); setVehicles(vR.data.data); setCustomers(cR.data.data); }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
