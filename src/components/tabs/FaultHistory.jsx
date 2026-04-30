@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import api from '../../api';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
+function formatFaults(faults) {
+  if (!faults) return 'Unknown fault';
+  if (typeof faults === 'string') return faults;
+  if (Array.isArray(faults)) return faults.join(', ');
+  if (Array.isArray(faults.active)) return faults.active.join(', ');
+  return JSON.stringify(faults);
+}
+
 export default function FaultHistory({ vehicleId }) {
   const [faults, setFaults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +94,7 @@ export default function FaultHistory({ vehicleId }) {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />
-                        <span className="text-red-300">{f.faults}</span>
+                        <span className="text-red-300">{formatFaults(f.faults)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right text-gray-300">

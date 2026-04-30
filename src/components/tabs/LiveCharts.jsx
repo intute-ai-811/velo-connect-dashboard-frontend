@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { apiUrl } from '../../api';
+import api, { apiUrl } from '../../api';
 import {
   AreaChart,
   Area,
@@ -82,15 +82,59 @@ function ChartCard({ label, unit, color, data, dataKey }) {
   );
 }
 
+function toChartPoint(d) {
+  const pointTs = d?.recorded_at ? new Date(d.recorded_at).getTime() : Date.now();
+  const point = { ts: pointTs };
+  for (const chart of CHARTS) {
+    point[chart.key] = chart.path(d) ?? null;
+  }
+  return point;
+}
+
+function samePoint(a, b) {
+  return a && b && a.ts === b.ts;
+}
+
 export default function LiveCharts({ vehicleId, user }) {
   const [chartData, setChartData] = useState([]);
   const [connected, setConnected] = useState(false);
+  const [lastPacket, setLastPacket] = useState(null);
+  const [now, setNow] = useState(Date.now());
   const esRef = useRef(null);
 
   useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     const token = (() => {
       try { return JSON.parse(localStorage.getItem('user'))?.token; } catch { return ''; }
     })();
+
+    const addPoint = (d) => {
+      setLastPacket(d);
+      const point = toChartPoint(d);
+      setChartData((prev) => {
+        if (samePoint(prev[prev.length - 1], point)) return prev;
+        const now = Date.now();
+        const next = [...prev, point].filter((p) => now - p.ts < WINDOW_MS);
+        if (next.length === 0) return [point];
+        return next.slice(-MAX_POINTS);
+      });
+    };
+
+    const loadSnapshot = () => {
+      api.get(`/api/vehicles/${vehicleId}/live`)
+        .then((res) => {
+          if (!cancelled && res.data) addPoint(res.data);
+        })
+        .catch(() => {});
+    };
+
+    loadSnapshot();
+    const snapshotTimer = setInterval(loadSnapshot, 5_000);
 
     const streamUrl = apiUrl(`/api/vehicles/${vehicleId}/stream?token=${encodeURIComponent(token)}`);
     const es = new EventSource(streamUrl);
@@ -101,30 +145,30 @@ export default function LiveCharts({ vehicleId, user }) {
     es.onmessage = (e) => {
       try {
         const d = JSON.parse(e.data);
-        const now = Date.now();
-        const point = { ts: now };
-        for (const chart of CHARTS) {
-          point[chart.key] = chart.path(d) ?? null;
-        }
-        setChartData((prev) => {
-          const next = [...prev, point].filter((p) => now - p.ts < WINDOW_MS);
-          return next.slice(-MAX_POINTS);
-        });
+        addPoint(d);
       } catch {}
     };
 
     es.onerror = () => setConnected(false);
 
-    return () => { es.close(); };
+    return () => {
+      cancelled = true;
+      clearInterval(snapshotTimer);
+      es.close();
+    };
   }, [vehicleId]);
+
+  const lastDataAt = lastPacket?.recorded_at ? new Date(lastPacket.recorded_at) : null;
+  const stale = lastDataAt && now - lastDataAt.getTime() > 15_000;
+  const live = connected && !!lastDataAt && !stale;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <span
-          className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-gray-600'}`}
+          className={`w-2 h-2 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-gray-600'}`}
         />
-        {connected ? 'Streaming live — 5-minute rolling window' : 'Connecting...'}
+        {live ? 'Streaming live - 5-minute rolling window' : lastPacket ? 'Offline - last data older than 15 seconds' : connected ? 'Waiting for telemetry data...' : 'Connecting...'}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { apiUrl } from '../../api';
+import api, { apiUrl } from '../../api';
 import { MapPin, Zap, Gauge, Settings, AlertTriangle, Activity } from 'lucide-react';
 
 /* ── SoC circular arc gauge ── */
@@ -108,25 +108,68 @@ function Section({ icon:Icon, title, iconColor, children, columns = 'repeat(auto
 function socColor(s)  { return s == null ? 'rgba(224,242,254,0.88)' : s > 50 ? '#4ade80' : s > 20 ? '#facc15' : '#f87171'; }
 function tempColor(t) { return t == null ? 'rgba(224,242,254,0.88)' : t > 80 ? '#f87171' : t > 60 ? '#fb923c' : 'rgba(224,242,254,0.88)'; }
 
+function formatFaults(faults) {
+  if (!faults) return '';
+  if (typeof faults === 'string') return faults;
+  if (Array.isArray(faults)) return faults.join(', ');
+  if (Array.isArray(faults.active)) return faults.active.join(', ');
+  return JSON.stringify(faults);
+}
+
 export default function LiveView({ vehicleId }) {
   const [data, setData]             = useState(null);
   const [connected, setConnected]   = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [now, setNow]               = useState(Date.now());
   const esRef = useRef(null);
 
   useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     const token = (() => { try { return JSON.parse(localStorage.getItem('user'))?.token; } catch { return ''; } })();
+
+    const loadSnapshot = () => {
+      api.get(`/api/vehicles/${vehicleId}/live`)
+        .then((res) => {
+          if (!cancelled && res.data) {
+            setData(res.data);
+            setLastUpdate(new Date());
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadSnapshot();
+    const snapshotTimer = setInterval(loadSnapshot, 5_000);
+
     const streamUrl = apiUrl(`/api/vehicles/${vehicleId}/stream?token=${encodeURIComponent(token)}`);
     const es = new EventSource(streamUrl);
     esRef.current = es;
     es.onopen    = () => setConnected(true);
     es.onmessage = e => { try { setData(JSON.parse(e.data)); setLastUpdate(new Date()); } catch {} };
     es.onerror   = () => setConnected(false);
-    return () => { es.close(); esRef.current = null; };
+    return () => {
+      cancelled = true;
+      clearInterval(snapshotTimer);
+      es.close();
+      esRef.current = null;
+    };
   }, [vehicleId]);
 
-  const stale  = lastUpdate && Date.now() - lastUpdate.getTime() > 15_000;
-  const live   = connected && !stale;
+  const lastDataAt = data?.recorded_at ? new Date(data.recorded_at) : lastUpdate;
+  const stale  = lastDataAt && now - lastDataAt.getTime() > 15_000;
+  const live   = connected && !!lastDataAt && !stale;
+  const statusText = live
+    ? 'Streaming live data'
+    : data
+      ? 'Offline - last data shown'
+      : connected
+        ? 'Waiting for telemetry data...'
+        : 'Connecting to stream...';
   const b = data?.battery, m = data?.motor, g = data?.general, loc = data?.location;
 
   return (
@@ -147,10 +190,10 @@ export default function LiveView({ vehicleId }) {
             {live && <span style={{ position:'absolute', inset:0, borderRadius:'50%', background:'#22c55e', animation:'livePing 1.5s ease-out infinite' }}/>}
           </div>
           <span style={{ fontSize:12, fontWeight:600, color: live ? '#4ade80' : 'rgba(147,197,253,0.35)', letterSpacing:'0.04em' }}>
-            {live ? 'Streaming live data' : stale ? 'Signal stale — last data shown' : 'Connecting to stream…'}
+            {statusText}
           </span>
         </div>
-        {lastUpdate && <span style={{ fontSize:11, color:'rgba(56,189,248,0.22)' }}>Updated {lastUpdate.toLocaleTimeString('en-IN')}</span>}
+        {lastDataAt && <span style={{ fontSize:11, color:'rgba(56,189,248,0.22)' }}>Updated {lastDataAt.toLocaleTimeString('en-IN')}</span>}
       </div>
 
       {/* ── Fault banner ── */}
@@ -159,13 +202,14 @@ export default function LiveView({ vehicleId }) {
           <AlertTriangle style={{ width:15,height:15,color:'#fca5a5',flexShrink:0,marginTop:1 }}/>
           <div>
             <p style={{ margin:0, fontSize:12, fontWeight:700, color:'#fca5a5', letterSpacing:'0.04em', textTransform:'uppercase', marginBottom:3 }}>Active Fault</p>
-            <p style={{ margin:0, fontSize:13, color:'rgba(252,165,165,0.8)' }}>{g.faults}</p>
+            <p style={{ margin:0, fontSize:13, color:'rgba(252,165,165,0.8)' }}>{formatFaults(g.faults)}</p>
           </div>
         </div>
       )}
 
       {/* ═══ Hero panel — SoC + key metrics ═══ */}
       <div style={{
+        position:'relative',
         background:'linear-gradient(135deg, rgba(2,8,30,0.9) 0%, rgba(1,5,20,0.85) 100%)',
         border:'1px solid rgba(37,99,235,0.16)',
         borderRadius:18, padding:'24px 28px', marginBottom:14,

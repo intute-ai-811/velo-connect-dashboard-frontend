@@ -10,8 +10,7 @@ const PAGE_SIZE = 10;
 function statusOf(lastSeen) {
   if (!lastSeen) return 'offline';
   const age = Date.now() - new Date(lastSeen).getTime();
-  if (age < 60_000) return 'online';
-  if (age < 300_000) return 'idle';
+  if (age < 15_000) return 'online';
   return 'offline';
 }
 

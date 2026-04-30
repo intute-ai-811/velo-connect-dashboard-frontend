@@ -26,8 +26,8 @@ function MapController({ center, shouldPan }) {
   return null;
 }
 
-/* ── Pulsing live marker (DivIcon) ── */
-function LiveMarker({ position, speed }) {
+/* ── Latest location marker (DivIcon) ── */
+function LiveMarker({ position, speed, live }) {
   const map = useMap();
   const markerRef = useRef(null);
 
@@ -38,9 +38,9 @@ function LiveMarker({ position, speed }) {
       className: '',
       html: `
         <div style="position:relative;width:24px;height:24px;">
-          <div style="position:absolute;inset:-8px;border-radius:50%;background:rgba(37,99,235,0.25);animation:liveRingA 1.8s ease-out infinite;"></div>
-          <div style="position:absolute;inset:-3px;border-radius:50%;background:rgba(14,165,233,0.18);animation:liveRingB 1.8s ease-out 0.6s infinite;"></div>
-          <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,#2563eb,#0ea5e9);border:2.5px solid rgba(186,230,253,0.9);box-shadow:0 0 12px rgba(37,99,235,0.7);"></div>
+          ${live ? '<div style="position:absolute;inset:-8px;border-radius:50%;background:rgba(37,99,235,0.25);animation:liveRingA 1.8s ease-out infinite;"></div>' : ''}
+          ${live ? '<div style="position:absolute;inset:-3px;border-radius:50%;background:rgba(14,165,233,0.18);animation:liveRingB 1.8s ease-out 0.6s infinite;"></div>' : ''}
+          <div style="position:absolute;inset:0;border-radius:50%;background:${live ? 'linear-gradient(135deg,#2563eb,#0ea5e9)' : '#64748b'};border:2.5px solid rgba(186,230,253,0.9);box-shadow:${live ? '0 0 12px rgba(37,99,235,0.7)' : 'none'};"></div>
         </div>`,
       iconSize: [24, 24],
       iconAnchor: [12, 12],
@@ -49,16 +49,17 @@ function LiveMarker({ position, speed }) {
     if (markerRef.current) {
       markerRef.current.setLatLng(position);
       markerRef.current.setIcon(icon);
+      markerRef.current.setPopupContent(`<b>${live ? 'Live Position' : 'Last Position'}</b><br/>Speed: ${speed != null ? `${parseFloat(speed).toFixed(1)} km/h` : '-'}`);
     } else {
       markerRef.current = L.marker(position, { icon })
         .addTo(map)
-        .bindPopup(`<b>Live Position</b><br/>Speed: ${speed != null ? `${parseFloat(speed).toFixed(1)} km/h` : '—'}`);
+        .bindPopup(`<b>${live ? 'Live Position' : 'Last Position'}</b><br/>Speed: ${speed != null ? `${parseFloat(speed).toFixed(1)} km/h` : '-'}`);
     }
 
     return () => {
       if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
     };
-  }, [position, speed, map]);
+  }, [position, speed, live, map]);
 
   return null;
 }
@@ -73,6 +74,7 @@ export default function MapView({ vehicleId }) {
   const [liveTrail, setLiveTrail] = useState([]);      // [[lat,lng], ...]
   const [liveTs,    setLiveTs]    = useState(null);
   const [connected, setConnected] = useState(false);
+  const [now,       setNow]       = useState(Date.now());
   const esRef = useRef(null);
 
   /* ── History state ── */
@@ -85,11 +87,47 @@ export default function MapView({ vehicleId }) {
   const [center, setCenter] = useState([20.5937, 78.9629]);
   const [mapKey, setMapKey] = useState(0); // force remount when switching modes
 
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
   /* ── Live SSE connection ── */
   useEffect(() => {
     if (mode !== 'live') { esRef.current?.close(); esRef.current = null; setConnected(false); return; }
 
     const token = (() => { try { return JSON.parse(localStorage.getItem('user'))?.token; } catch { return ''; } })();
+    let cancelled = false;
+
+    const applyLiveData = (d) => {
+      const lat = d.location?.latitude, lng = d.location?.longitude;
+      const packetTs = d.recorded_at ? new Date(d.recorded_at) : new Date();
+      if (lat != null && lng != null) {
+        const pos = [lat, lng];
+        setLivePos(pos);
+        setLiveSpeed(d.general?.speed ?? null);
+        setLiveTs(packetTs);
+        setCenter(pos);
+        setLiveTrail(prev => {
+          const prevLast = prev[prev.length - 1];
+          if (prevLast && prevLast[0] === pos[0] && prevLast[1] === pos[1]) return prev;
+          const next = [...prev, pos];
+          return next.length > 200 ? next.slice(-200) : next;
+        });
+      }
+    };
+
+    const loadSnapshot = () => {
+      api.get(`/api/vehicles/${vehicleId}/live`)
+        .then((res) => {
+          if (!cancelled && res.data) applyLiveData(res.data);
+        })
+        .catch(() => {});
+    };
+
+    loadSnapshot();
+    const snapshotTimer = setInterval(loadSnapshot, 5_000);
+
     const streamUrl = apiUrl(`/api/vehicles/${vehicleId}/stream?token=${encodeURIComponent(token)}`);
     const es = new EventSource(streamUrl);
     esRef.current = es;
@@ -99,22 +137,16 @@ export default function MapView({ vehicleId }) {
     es.onmessage = e => {
       try {
         const d = JSON.parse(e.data);
-        const lat = d.location?.latitude, lng = d.location?.longitude;
-        if (lat && lng) {
-          const pos = [lat, lng];
-          setLivePos(pos);
-          setLiveSpeed(d.general?.speed ?? null);
-          setLiveTs(new Date());
-          setCenter(pos);
-          setLiveTrail(prev => {
-            const next = [...prev, pos];
-            return next.length > 200 ? next.slice(-200) : next;
-          });
-        }
+        applyLiveData(d);
       } catch {}
     };
 
-    return () => { es.close(); esRef.current = null; };
+    return () => {
+      cancelled = true;
+      clearInterval(snapshotTimer);
+      es.close();
+      esRef.current = null;
+    };
   }, [vehicleId, mode]);
 
   /* ── History load ── */
@@ -144,7 +176,8 @@ export default function MapView({ vehicleId }) {
     if (m === 'live') { setLiveTrail([]); setLivePos(null); }
   }
 
-  const stale = liveTs && Date.now() - liveTs.getTime() > 20_000;
+  const stale = liveTs && now - liveTs.getTime() > 15_000;
+  const live = connected && !!liveTs && !stale;
 
   return (
     <div style={{ fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
@@ -184,11 +217,11 @@ export default function MapView({ vehicleId }) {
       {mode === 'live' && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:T.cardBg, border:`1px solid ${T.border}`, borderRadius:11, padding:'10px 16px', marginBottom:12 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            {connected && !stale
+            {live
               ? <Wifi style={{ width:14,height:14,color:'#22c55e' }}/>
               : <WifiOff style={{ width:14,height:14,color:'#6b7280' }}/>}
             <span style={{ fontSize:13, color:T.textSub, fontWeight:500 }}>
-              {connected && !stale ? 'Streaming live location' : stale ? 'Signal lost — last known position shown' : 'Connecting to live feed…'}
+              {live ? 'Streaming live location' : liveTs ? 'Offline - last known position shown' : connected ? 'Waiting for location data...' : 'Connecting to live feed...'}
             </span>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
@@ -249,7 +282,7 @@ export default function MapView({ vehicleId }) {
                 {liveTrail.length > 1 && (
                   <Polyline positions={liveTrail} pathOptions={{ color:'#38bdf8', weight:3, opacity:0.7, dashArray:null }} />
                 )}
-                {livePos && <LiveMarker position={livePos} speed={liveSpeed} />}
+                {livePos && <LiveMarker position={livePos} speed={liveSpeed} live={live} />}
               </>
             )}
 
