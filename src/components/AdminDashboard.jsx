@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { RefreshCcw, Search, Loader2, AlertCircle, Activity, Wifi, WifiOff, Clock } from 'lucide-react';
@@ -114,21 +114,30 @@ export default function AdminDashboard({ user, onLogout }) {
   const [search,      setSearch]     = useState('');
   const [page,        setPage]       = useState(1);
   const [lastRefresh, setLastRefresh] = useState(null);
+  const hasLoadedRef = useRef(false);
   const navigate = useNavigate();
 
-  const load = useCallback(async () => {
-    setError(''); setLoading(true);
+  const load = useCallback(async ({ showLoading = false } = {}) => {
+    setError('');
+    if (showLoading || !hasLoadedRef.current) setLoading(true);
     try {
       const r = await api.get('/api/vehicles/admin-summary');
       setVehicles(r.data.data);
+      hasLoadedRef.current = true;
       setLastRefresh(new Date());
     } catch (e) {
       if (e.response?.status === 401) { onLogout(); return; }
       setError('Failed to load fleet data.');
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }, [onLogout]);
 
-  useEffect(() => { load(); const t = setInterval(load, 30_000); return () => clearInterval(t); }, [load]);
+  useEffect(() => {
+    load({ showLoading: true });
+    const t = setInterval(() => load(), 30_000);
+    return () => clearInterval(t);
+  }, [load]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const filtered = useMemo(() => {
