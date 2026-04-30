@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { RefreshCcw, Search, Loader2, AlertCircle } from 'lucide-react';
 import Header from './Header';
 import FooterFixed from './Footer';
@@ -69,7 +69,7 @@ export default function CustomerDashboard({ user, onLogout }) {
 
   async function load() {
     setError(''); setLoading(true);
-    try { const r = await axios.get('/api/vehicles/my'); setVehicles(r.data.data); }
+    try { const r = await api.get('/api/vehicles/my'); setVehicles(r.data.data); }
     catch (e) { if (e.response?.status===401) { onLogout(); return; } setError('Failed to load your vehicles.'); }
     finally { setLoading(false); }
   }

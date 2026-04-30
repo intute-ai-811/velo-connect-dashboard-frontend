@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { RefreshCcw, Search, Loader2, AlertCircle, Activity, Wifi, WifiOff, Clock } from 'lucide-react';
 import Header from './Header';
 import FooterFixed from './Footer';
@@ -120,7 +120,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const load = useCallback(async () => {
     setError(''); setLoading(true);
     try {
-      const r = await axios.get('/api/vehicles/admin-summary');
+      const r = await api.get('/api/vehicles/admin-summary');
       setVehicles(r.data.data);
       setLastRefresh(new Date());
     } catch (e) {

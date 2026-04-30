@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { Plus, Pencil, Trash2, Truck } from 'lucide-react';
 import Header from '../Header';
 import FooterFixed from '../Footer';
@@ -28,7 +28,7 @@ export default function VehicleMaster({ user, onLogout }) {
 
   async function load() {
     setLoading(true);
-    try { const [vR,cR] = await Promise.all([axios.get('/api/admin/vehicles'),axios.get('/api/admin/customers')]); setVehicles(vR.data.data); setCustomers(cR.data.data); }
+    try { const [vR,cR] = await Promise.all([api.get('/api/admin/vehicles'),api.get('/api/admin/customers')]); setVehicles(vR.data.data); setCustomers(cR.data.data); }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
@@ -40,7 +40,7 @@ export default function VehicleMaster({ user, onLogout }) {
     setSaving(true); setError('');
     try {
       const payload = { ...form, customer_id:form.customer_id||null };
-      modal==='create' ? await axios.post('/api/admin/vehicles',payload) : await axios.put(`/api/admin/vehicles/${modal.vehicle_master_id}`,payload);
+      modal==='create' ? await api.post('/api/admin/vehicles',payload) : await api.put(`/api/admin/vehicles/${modal.vehicle_master_id}`,payload);
       setModal(null); load();
     } catch(e) { setError(e.response?.data?.error||'Save failed'); }
     finally { setSaving(false); }
@@ -48,7 +48,7 @@ export default function VehicleMaster({ user, onLogout }) {
 
   async function handleDelete(id) {
     if (!confirm('Delete this vehicle? All telemetry data will be removed.')) return;
-    try { await axios.delete(`/api/admin/vehicles/${id}`); load(); }
+    try { await api.delete(`/api/admin/vehicles/${id}`); load(); }
     catch(e) { alert(e.response?.data?.error||'Delete failed'); }
   }
 

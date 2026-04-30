@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 export default function FaultHistory({ vehicleId }) {
@@ -14,7 +14,7 @@ export default function FaultHistory({ vehicleId }) {
       const params = {};
       if (from) params.from = from;
       if (to) params.to = to;
-      const res = await axios.get(`/api/vehicles/${vehicleId}/faults`, { params });
+      const res = await api.get(`/api/vehicles/${vehicleId}/faults`, { params });
       setFaults(res.data);
     } catch {
       setFaults([]);

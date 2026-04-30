@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { apiUrl } from '../../api';
 import {
   AreaChart,
   Area,
@@ -91,9 +92,8 @@ export default function LiveCharts({ vehicleId, user }) {
       try { return JSON.parse(localStorage.getItem('user'))?.token; } catch { return ''; }
     })();
 
-    const es = new EventSource(
-      `/api/vehicles/${vehicleId}/stream?token=${encodeURIComponent(token)}`
-    );
+    const streamUrl = apiUrl(`/api/vehicles/${vehicleId}/stream?token=${encodeURIComponent(token)}`);
+    const es = new EventSource(streamUrl);
     esRef.current = es;
 
     es.onopen = () => setConnected(true);

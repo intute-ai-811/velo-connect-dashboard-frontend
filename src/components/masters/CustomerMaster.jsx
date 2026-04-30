@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { Plus, Pencil, Trash2, X, Check, Loader2, AlertCircle, Users } from 'lucide-react';
 import Header from '../Header';
 import FooterFixed from '../Footer';
@@ -29,7 +29,7 @@ export default function CustomerMaster({ user, onLogout }) {
 
   async function load() {
     setLoading(true);
-    try { const r = await axios.get('/api/admin/customers'); setCustomers(r.data.data); }
+    try { const r = await api.get('/api/admin/customers'); setCustomers(r.data.data); }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
@@ -40,7 +40,7 @@ export default function CustomerMaster({ user, onLogout }) {
   async function handleSave() {
     setSaving(true); setError('');
     try {
-      modal==='create' ? await axios.post('/api/admin/customers', form) : await axios.put(`/api/admin/customers/${modal.customer_id}`, form);
+      modal==='create' ? await api.post('/api/admin/customers', form) : await api.put(`/api/admin/customers/${modal.customer_id}`, form);
       setModal(null); load();
     } catch(e) { setError(e.response?.data?.error||'Save failed'); }
     finally { setSaving(false); }
@@ -48,7 +48,7 @@ export default function CustomerMaster({ user, onLogout }) {
 
   async function handleDelete(id) {
     if (!confirm('Delete this customer?')) return;
-    try { await axios.delete(`/api/admin/customers/${id}`); load(); }
+    try { await api.delete(`/api/admin/customers/${id}`); load(); }
     catch(e) { alert(e.response?.data?.error||'Delete failed'); }
   }
 

@@ -1,6 +1,6 @@
 import { useState, Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { setAuthToken } from './api';
 import LoginModal from './components/LoginModal';
 import AdminDashboard from './components/AdminDashboard';
 import CustomerDashboard from './components/CustomerDashboard';
@@ -71,7 +71,7 @@ export default function App() {
       const saved = JSON.parse(localStorage.getItem('user'));
       // Set Authorization header synchronously — must happen before any child useEffect fires
       if (saved?.token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${saved.token}`;
+        setAuthToken(saved.token);
       }
       return saved;
     } catch {
@@ -81,7 +81,7 @@ export default function App() {
 
   function handleLogin(userData) {
     if (userData?.token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
+      setAuthToken(userData.token);
     }
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
@@ -90,7 +90,7 @@ export default function App() {
   function handleLogout() {
     localStorage.clear();
     setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
+    setAuthToken(null);
   }
 
   return (

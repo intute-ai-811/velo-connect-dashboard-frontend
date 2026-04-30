@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
+import api, { apiUrl } from '../../api';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Radio, History, RefreshCw, Wifi, WifiOff } from 'lucide-react';
@@ -90,7 +90,8 @@ export default function MapView({ vehicleId }) {
     if (mode !== 'live') { esRef.current?.close(); esRef.current = null; setConnected(false); return; }
 
     const token = (() => { try { return JSON.parse(localStorage.getItem('user'))?.token; } catch { return ''; } })();
-    const es = new EventSource(`/api/vehicles/${vehicleId}/stream?token=${encodeURIComponent(token)}`);
+    const streamUrl = apiUrl(`/api/vehicles/${vehicleId}/stream?token=${encodeURIComponent(token)}`);
+    const es = new EventSource(streamUrl);
     esRef.current = es;
 
     es.onopen    = () => setConnected(true);
@@ -123,7 +124,7 @@ export default function MapView({ vehicleId }) {
       const params = { limit:1000 };
       if (from) params.from = from;
       if (to)   params.to   = to;
-      const res = await axios.get(`/api/vehicles/${vehicleId}/location`, { params });
+      const res = await api.get(`/api/vehicles/${vehicleId}/location`, { params });
       setPoints(res.data);
       if (res.data.length > 0) {
         const last = res.data[res.data.length - 1];

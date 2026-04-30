@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff, ArrowRight, AlertCircle, ChevronLeft } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 import veloLogo from '../assets/VeloConnectwb.png';
 import intuteLogo from '../assets/Intute.png';
 
@@ -284,7 +284,7 @@ export default function LoginModal({ onLogin }) {
     if (!email || !password) { setError('Please enter your email and password.'); return; }
     setError(''); setLoading(true);
     try {
-      const res = await axios.post('/api/auth/login', { email, password });
+      const res = await api.post('/api/auth/login', { email, password });
       onLogin({ ...res.data.user, token: res.data.token });
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid credentials. Please try again.');
