@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Radio, BarChart2, AlertTriangle, MapPin } from 'lucide-react';
+import { ArrowLeft, Radio, BarChart2, AlertTriangle, MapPin, Hash } from 'lucide-react';
 import Header from './Header';
 import FooterFixed from './Footer';
 import LiveView from './tabs/LiveView';
@@ -9,14 +9,14 @@ import FaultHistory from './tabs/FaultHistory';
 import MapView from './tabs/MapView';
 
 const ADMIN_TABS = [
-  { id:'live',   label:'Live View',     icon:Radio         },
-  { id:'charts', label:'Live Charts',   icon:BarChart2     },
-  { id:'faults', label:'Fault History', icon:AlertTriangle },
-  { id:'map',    label:'Live Tracking', icon:MapPin        },
+  { id: 'live',   label: 'Live View',     icon: Radio         },
+  { id: 'charts', label: 'Live Charts',   icon: BarChart2     },
+  { id: 'faults', label: 'Fault History', icon: AlertTriangle },
+  { id: 'map',    label: 'Live Tracking', icon: MapPin        },
 ];
 
 export default function VehicleDetails({ user, onLogout }) {
-  const { id }  = useParams();
+  const { id }   = useParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState('live');
 
@@ -24,98 +24,120 @@ export default function VehicleDetails({ user, onLogout }) {
   const tabs   = user?.role === 'admin' ? ADMIN_TABS : [ADMIN_TABS[0]];
   const backTo = user?.role === 'admin' ? '/admin' : '/dashboard';
   const name   = vehicle?.vehicle_no || vehicle?.vehicle_unique_id || `Vehicle #${id}`;
-  const sub    = [vehicle?.make, vehicle?.model].filter(Boolean).join(' ');
+  const sub    = [vehicle?.make, vehicle?.model].filter(Boolean).join(' · ');
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', background:'#010408', color:'rgba(224,242,254,0.88)', fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', position:'relative' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#010408', color: 'rgba(224,242,254,0.88)', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', position: 'relative' }}>
       <style>{`
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes tabIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes tabIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes spin   { to { transform:rotate(360deg) } }
       `}</style>
-      <div style={{ position:'fixed', inset:0, backgroundImage:'radial-gradient(circle, rgba(56,189,248,0.05) 1px, transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none', zIndex:0 }} />
-      <div style={{ position:'fixed', top:-180, right:-80, width:520, height:520, borderRadius:'50%', background:'radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 68%)', pointerEvents:'none', zIndex:0 }} />
+
+      {/* bg dot grid */}
+      <div style={{ position: 'fixed', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(56,189,248,0.04) 1px, transparent 1px)', backgroundSize: '28px 28px', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', top: -180, right: -80, width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.09) 0%, transparent 68%)', pointerEvents: 'none', zIndex: 0 }} />
 
       <Header user={user} onLogout={onLogout} />
 
-      {/* ── Vehicle subheader ── */}
+      {/* ══════════════════════════════════════
+          VEHICLE INFO  — NOT sticky, scrolls away
+      ══════════════════════════════════════ */}
       <div style={{
-        position:'sticky', top:84, zIndex:15,
-        background:'rgba(1,3,14,0.96)', backdropFilter:'blur(20px)',
-        borderBottom:'1px solid rgba(37,99,235,0.13)',
+        position: 'relative', zIndex: 10,
+        background: 'linear-gradient(180deg,rgba(37,99,235,0.07) 0%,rgba(1,3,14,0.4) 100%)',
+        borderBottom: '1px solid rgba(37,99,235,0.1)',
       }}>
-        {/* Thin gradient top line */}
-        <div style={{ height:1, background:'linear-gradient(to right, transparent, rgba(37,99,235,0.35) 30%, rgba(14,165,233,0.45) 60%, transparent)' }} />
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0 18px' }}>
 
-        <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 28px' }}>
-          {/* Back + vehicle info row */}
-          <div style={{ display:'flex', alignItems:'center', gap:18, padding:'14px 0 12px' }}>
+            {/* Back button */}
             <button
               onClick={() => navigate(backTo)}
-              style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'rgba(56,189,248,0.35)', fontSize:12, fontWeight:600, padding:0, fontFamily:'inherit', transition:'color 0.2s', flexShrink:0, letterSpacing:'0.04em', textTransform:'uppercase' }}
-              onMouseEnter={e=>(e.currentTarget.style.color='rgba(147,197,253,0.7)')}
-              onMouseLeave={e=>(e.currentTarget.style.color='rgba(56,189,248,0.35)')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid rgba(56,189,248,0.12)', cursor: 'pointer', color: 'rgba(56,189,248,0.45)', fontSize: 10, fontWeight: 700, padding: '6px 13px', borderRadius: 8, fontFamily: 'inherit', letterSpacing: '0.1em', textTransform: 'uppercase', transition: 'all 0.18s', flexShrink: 0 }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'rgba(147,197,253,0.85)'; e.currentTarget.style.borderColor = 'rgba(56,189,248,0.3)'; e.currentTarget.style.background = 'rgba(56,189,248,0.07)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(56,189,248,0.45)'; e.currentTarget.style.borderColor = 'rgba(56,189,248,0.12)'; e.currentTarget.style.background = 'none'; }}
             >
-              <ArrowLeft style={{ width:14,height:14 }}/>
+              <ArrowLeft style={{ width: 11, height: 11 }} />
               Fleet
             </button>
 
-            {/* Divider */}
-            <div style={{ width:1, height:18, background:'rgba(37,99,235,0.25)', flexShrink:0 }} />
+            <div style={{ width: 1, height: 22, background: 'rgba(37,99,235,0.2)', flexShrink: 0 }} />
 
-            {/* Vehicle avatar */}
+            {/* Avatar */}
             <div style={{
-              width:36, height:36, borderRadius:11, flexShrink:0,
-              background:'linear-gradient(135deg,#1e3a8a,#2563eb,#06b6d4)',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:14, fontWeight:800, color:'white',
-              boxShadow:'0 4px 14px rgba(37,99,235,0.4)',
+              width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+              background: 'linear-gradient(135deg,#1e3a8a,#2563eb,#06b6d4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 17, fontWeight: 800, color: 'white',
+              boxShadow: '0 4px 18px rgba(37,99,235,0.5), 0 0 0 1px rgba(56,189,248,0.18)',
+              letterSpacing: '-0.02em',
             }}>
-              {name[0]}
+              {name[0]?.toUpperCase()}
             </div>
 
-            <div style={{ minWidth:0 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-                <h1 style={{ margin:0, fontSize:16, fontWeight:700, color:'rgba(224,242,254,0.95)', letterSpacing:'-0.02em', whiteSpace:'nowrap' }}>{name}</h1>
-                {sub && <span style={{ fontSize:12, color:'rgba(147,197,253,0.4)', whiteSpace:'nowrap' }}>{sub}</span>}
+            {/* Name + meta */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'rgba(224,242,254,0.96)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>{name}</h1>
                 {vehicle?.company_name && (
-                  <span style={{ fontSize:11, color:'rgba(37,99,235,0.7)', background:'rgba(37,99,235,0.1)', border:'1px solid rgba(37,99,235,0.2)', borderRadius:20, padding:'2px 8px', whiteSpace:'nowrap' }}>
+                  <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(56,189,248,0.8)', background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.24)', borderRadius: 20, padding: '3px 10px', letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                     {vehicle.company_name}
                   </span>
                 )}
               </div>
+              {sub && (
+                <span style={{ fontSize: 12, color: 'rgba(147,197,253,0.4)', letterSpacing: '0.01em' }}>{sub}</span>
+              )}
             </div>
-          </div>
 
-          {/* ── Tab bar — underline style ── */}
-          <div style={{ display:'flex', gap:0, borderTop:'1px solid rgba(37,99,235,0.08)', marginTop:0 }}>
-            {tabs.map(({ id:tid, label, icon:Icon }) => {
+            {/* ID chip */}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.14)', borderRadius: 9, flexShrink: 0 }}>
+              <Hash style={{ width: 10, height: 10, color: 'rgba(56,189,248,0.35)' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(147,197,253,0.6)', fontVariantNumeric: 'tabular-nums' }}>{id}</span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════
+          TAB BAR  — sticky (only this sticks)
+      ══════════════════════════════════════ */}
+      <div style={{
+        position: 'sticky', top: 84, zIndex: 15,
+        background: 'rgba(1,3,14,0.97)',
+        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(37,99,235,0.13)',
+        boxShadow: '0 4px 28px rgba(0,0,0,0.45)',
+      }}>
+        <div style={{ height: 1, background: 'linear-gradient(to right, transparent, rgba(37,99,235,0.28) 30%, rgba(14,165,233,0.38) 60%, transparent)' }} />
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 28px' }}>
+          <div style={{ display: 'flex', gap: 0 }}>
+            {tabs.map(({ id: tid, label, icon: Icon }) => {
               const active = tab === tid;
               return (
                 <button
                   key={tid}
                   onClick={() => setTab(tid)}
                   style={{
-                    display:'flex', alignItems:'center', gap:7,
-                    padding:'11px 20px',
-                    background:'none', border:'none', cursor:'pointer', fontFamily:'inherit',
-                    fontSize:13, fontWeight: active ? 600 : 500,
-                    color: active ? '#38bdf8' : 'rgba(147,197,253,0.35)',
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    padding: '12px 22px',
+                    background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 12, fontWeight: active ? 700 : 500,
+                    color: active ? '#38bdf8' : 'rgba(147,197,253,0.32)',
                     borderBottom: active ? '2px solid #38bdf8' : '2px solid transparent',
-                    marginBottom:'-1px',
-                    transition:'all 0.18s',
-                    position:'relative',
+                    marginBottom: '-1px',
+                    transition: 'color 0.18s',
+                    position: 'relative',
+                    letterSpacing: active ? '0.02em' : '0',
                   }}
-                  onMouseEnter={e => { if(!active) e.currentTarget.style.color='rgba(147,197,253,0.65)'; }}
-                  onMouseLeave={e => { if(!active) e.currentTarget.style.color='rgba(147,197,253,0.35)'; }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'rgba(147,197,253,0.65)'; }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(147,197,253,0.32)'; }}
                 >
-                  <Icon style={{ width:13,height:13, opacity: active ? 1 : 0.6 }}/>
+                  <Icon style={{ width: 12, height: 12, opacity: active ? 1 : 0.5 }} />
                   {label}
                   {active && (
-                    <span style={{
-                      position:'absolute', bottom:0, left:'50%', transform:'translateX(-50%)',
-                      width:4, height:4, borderRadius:'50%', background:'#38bdf8',
-                      boxShadow:'0 0 8px #38bdf8',
-                    }}/>
+                    <span style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 3, height: 3, borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 6px #38bdf8' }} />
                   )}
                 </button>
               );
@@ -125,11 +147,11 @@ export default function VehicleDetails({ user, onLogout }) {
       </div>
 
       {/* ── Tab content ── */}
-      <main style={{ position:'relative', zIndex:1, flex:1, maxWidth:1280, width:'100%', margin:'0 auto', padding:'24px 28px', animation:'tabIn 0.3s ease both' }}>
-        {tab==='live'   && <LiveView    vehicleId={id} user={user} />}
-        {tab==='charts' && <LiveCharts  vehicleId={id} user={user} />}
-        {tab==='faults' && <FaultHistory vehicleId={id} />}
-        {tab==='map'    && <MapView     vehicleId={id} />}
+      <main style={{ position: 'relative', zIndex: 1, flex: 1, maxWidth: 1280, width: '100%', margin: '0 auto', padding: '20px 28px 28px', animation: 'tabIn 0.28s ease both' }} key={tab}>
+        {tab === 'live'   && <LiveView    vehicleId={id} user={user} />}
+        {tab === 'charts' && <LiveCharts  vehicleId={id} user={user} />}
+        {tab === 'faults' && <FaultHistory vehicleId={id} />}
+        {tab === 'map'    && <MapView     vehicleId={id} />}
       </main>
 
       <FooterFixed />
