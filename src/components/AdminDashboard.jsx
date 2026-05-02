@@ -135,7 +135,9 @@ export default function AdminDashboard({ user, onLogout }) {
     if (showLoading || !hasLoadedRef.current) setLoading(true);
     try {
       const r = await api.get('/api/vehicles/admin-summary');
-      setVehicles(r.data.data);
+      // r.data.data for paginated response shape; r.data if backend returned plain array
+      const list = Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [];
+      setVehicles(list);
       hasLoadedRef.current = true;
       setLastRefresh(new Date());
     } catch (e) {
@@ -154,18 +156,22 @@ export default function AdminDashboard({ user, onLogout }) {
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const filtered = useMemo(() => {
+    const v = vehicles ?? [];
     const q = search.toLowerCase();
-    return q ? vehicles.filter(v =>
-      [v.vehicle_no, v.vehicle_unique_id, v.company_name, v.make, v.model].some(f => f?.toLowerCase().includes(q))
-    ) : vehicles;
+    return q ? v.filter(x =>
+      [x.vehicle_no, x.vehicle_unique_id, x.company_name, x.make, x.model].some(f => f?.toLowerCase().includes(q))
+    ) : v;
   }, [vehicles, search]);
 
-  const stats = useMemo(() => ({
-    total:   vehicles.length,
-    online:  vehicles.filter(v => statusOf(v.last_seen) === 'online').length,
-    idle:    vehicles.filter(v => statusOf(v.last_seen) === 'idle').length,
-    offline: vehicles.filter(v => statusOf(v.last_seen) === 'offline').length,
-  }), [vehicles]);
+  const stats = useMemo(() => {
+    const v = vehicles ?? [];
+    return {
+      total:   v.length,
+      online:  v.filter(x => statusOf(x.last_seen) === 'online').length,
+      idle:    v.filter(x => statusOf(x.last_seen) === 'idle').length,
+      offline: v.filter(x => statusOf(x.last_seen) === 'offline').length,
+    };
+  }, [vehicles]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);

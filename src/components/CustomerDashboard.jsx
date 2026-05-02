@@ -81,7 +81,11 @@ export default function CustomerDashboard({ user, onLogout }) {
 
   async function load() {
     setError(''); setLoading(true);
-    try { const r = await api.get('/api/vehicles/my'); setVehicles(r.data.data); }
+    try {
+      const r = await api.get('/api/vehicles/my');
+      const list = Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [];
+      setVehicles(list);
+    }
     catch (e) { if (e.response?.status===401) { onLogout(); return; } setError('Failed to load your vehicles.'); }
     finally { setLoading(false); }
   }
@@ -89,8 +93,9 @@ export default function CustomerDashboard({ user, onLogout }) {
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const filtered = useMemo(() => {
+    const v = vehicles ?? [];
     const q = search.toLowerCase();
-    return q ? vehicles.filter(v => [v.vehicle_no,v.vehicle_unique_id,v.make,v.model].some(f=>f?.toLowerCase().includes(q))) : vehicles;
+    return q ? v.filter(x => [x.vehicle_no,x.vehicle_unique_id,x.make,x.model].some(f=>f?.toLowerCase().includes(q))) : v;
   }, [vehicles, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -113,7 +118,7 @@ export default function CustomerDashboard({ user, onLogout }) {
             <h1 style={{ fontSize:22, fontWeight:700, color:T.text, letterSpacing:'-0.02em', margin:0 }}>My Vehicles</h1>
           </div>
           <p style={{ fontSize:13, color:T.textSub, marginLeft:15 }}>
-            {vehicles.length > 0 ? `${vehicles.length} vehicle${vehicles.length!==1?'s':''} in your fleet` : 'Monitor your registered fleet in real-time'}
+            {(vehicles ?? []).length > 0 ? `${(vehicles ?? []).length} vehicle${(vehicles ?? []).length!==1?'s':''} in your fleet` : 'Monitor your registered fleet in real-time'}
           </p>
         </div>
 
@@ -153,7 +158,7 @@ export default function CustomerDashboard({ user, onLogout }) {
                 </tr>
               </thead>
               <tbody>
-                {loading && vehicles.length===0 ? (
+                {loading && (vehicles ?? []).length===0 ? (
                   <tr><td colSpan={COLS.length} style={{ padding:'80px 20px', textAlign:'center' }}>
                     <Loader2 style={{ width:28,height:28,color:'#2563eb',animation:'spin 0.7s linear infinite',margin:'0 auto 12px' }}/>
                     <p style={{ color:T.textSub, fontSize:13 }}>Loading your vehicles…</p>
