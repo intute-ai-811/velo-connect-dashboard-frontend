@@ -31,6 +31,17 @@ function formatFaults(f) {
   return JSON.stringify(f);
 }
 
+/* viewport width — re-renders only when width changes */
+function useW() {
+  const [w, setW] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
+
 /* ─────────────────────────────────────────────
    HOOK: live status — only re-renders when the
    boolean flips, not every clock tick
@@ -298,6 +309,9 @@ const Blobs = memo(function Blobs() {
    MAIN COMPONENT
 ═══════════════════════════════════════════════ */
 export default function LiveView({ vehicleId }) {
+  const w = useW();
+  const sm = w < 640, md = w < 768;
+
   const [data,       setData]       = useState(null);
   const [connected,  setConnected]  = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
@@ -345,7 +359,7 @@ export default function LiveView({ vehicleId }) {
   }, [lastDataAt]);
 
   return (
-    <div style={{ fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background: G.bg, minHeight: '100%', padding: 16, boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background: G.bg, minHeight: '100%', padding: sm ? 10 : 16, boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}>
       <style>{`@keyframes ping{0%{transform:scale(1);opacity:1}70%{transform:scale(2.8);opacity:0}100%{opacity:0}}`}</style>
 
       <Blobs />
@@ -379,7 +393,7 @@ export default function LiveView({ vehicleId }) {
         )}
 
         {/* ══ ROW 1: SoC | Speed + RPM + Controls ══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.75fr', gap: 12, alignItems: 'stretch' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: md ? '1fr' : '1fr 1.75fr', gap: 12, alignItems: 'stretch' }}>
 
           {/* SoC card */}
           <Card accent={G.green} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px 14px 18px' }}>
@@ -457,8 +471,8 @@ export default function LiveView({ vehicleId }) {
         {/* ══ ROW 2: BATTERY ══ */}
         <Card accent={G.green}>
           <SectionHdr icon={Zap} title="Battery — Sun Mobility" color={G.green} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.1fr', minHeight: 0 }}>
-            <div style={{ padding: '18px 20px', borderRight: `1px solid ${G.border}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: md ? '1fr' : '1fr 1.1fr', minHeight: 0 }}>
+            <div style={{ padding: '18px 20px', borderRight: md ? 'none' : `1px solid ${G.border}`, borderBottom: md ? `1px solid ${G.border}` : 'none' }}>
               <span style={{ fontSize: 9, fontWeight: 700, color: G.dim, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 16 }}>Cell Voltage Range</span>
               <VoltDisplay max={b?.max_cell_voltage} min={b?.min_cell_voltage} />
             </div>
@@ -475,8 +489,8 @@ export default function LiveView({ vehicleId }) {
         {/* ══ ROW 3: MOTOR ══ */}
         <Card accent={G.blue}>
           <SectionHdr icon={Cpu} title="Motor Controller" color={G.blue} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'stretch' }}>
-            <div style={{ display: 'flex', gap: 20, padding: '18px 26px', borderRight: `1px solid ${G.border}`, alignItems: 'flex-end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: md ? '1fr' : 'auto 1fr', alignItems: 'stretch' }}>
+            <div style={{ display: 'flex', gap: 20, padding: '18px 26px', borderRight: md ? 'none' : `1px solid ${G.border}`, borderBottom: md ? `1px solid ${G.border}` : 'none', alignItems: 'flex-end', justifyContent: md ? 'center' : 'flex-start' }}>
               <TempCol value={m?.controller_temp} label="Ctrl" />
               <TempCol value={m?.motor_temp}       label="Motor" />
             </div>

@@ -1,4 +1,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+
+function useW() {
+  const [w, setW] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { RefreshCcw, Search, Loader2, AlertCircle, Activity, Wifi, WifiOff, Clock } from 'lucide-react';
@@ -107,6 +117,9 @@ function StatusDot({ status }) {
 const COLS = ['#', 'Vehicle', 'Make / Model', 'Customer', 'Battery', 'Last Seen', 'Status'];
 
 export default function AdminDashboard({ user, onLogout }) {
+  const w = useW();
+  const sm = w < 640;
+
   const [vehicles,    setVehicles]   = useState([]);
   const [loading,     setLoading]    = useState(true);
   const [refreshing,  setRefreshing] = useState(false);
@@ -174,7 +187,7 @@ export default function AdminDashboard({ user, onLogout }) {
 
       {/* ── Page hero ── */}
       <div style={{ position:'relative', zIndex:1, borderBottom:'1px solid rgba(37,99,235,0.1)', background:'linear-gradient(to bottom, rgba(3,10,35,0.8), rgba(1,4,14,0.5))' }}>
-        <div style={{ maxWidth:1280, margin:'0 auto', padding:'24px 28px 22px' }}>
+        <div style={{ maxWidth:1280, margin:'0 auto', padding: sm ? '16px 14px 14px' : '24px 28px 22px' }}>
 
           {/* Title row */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14, marginBottom:20 }}>
@@ -194,7 +207,7 @@ export default function AdminDashboard({ user, onLogout }) {
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
                   placeholder="Search vehicles…"
-                  style={{ paddingLeft:33, paddingRight:14, paddingTop:9, paddingBottom:9, background:'rgba(37,99,235,0.08)', border:'1px solid rgba(37,99,235,0.22)', borderRadius:10, color:'rgba(220,240,255,0.9)', fontSize:13, outline:'none', width:210, fontFamily:'inherit', transition:'all 0.2s', '::placeholder': { color:'rgba(100,150,200,0.4)' } }}
+                  style={{ paddingLeft:33, paddingRight:14, paddingTop:9, paddingBottom:9, background:'rgba(37,99,235,0.08)', border:'1px solid rgba(37,99,235,0.22)', borderRadius:10, color:'rgba(220,240,255,0.9)', fontSize:13, outline:'none', width: sm ? '100%' : 210, fontFamily:'inherit', transition:'all 0.2s' }}
                   onFocus={e => { e.target.style.borderColor='rgba(56,189,248,0.5)'; e.target.style.background='rgba(37,99,235,0.13)'; }}
                   onBlur={e  => { e.target.style.borderColor='rgba(37,99,235,0.22)'; e.target.style.background='rgba(37,99,235,0.08)'; }}
                 />
@@ -220,7 +233,7 @@ export default function AdminDashboard({ user, onLogout }) {
       </div>
 
       {/* ── Table ── */}
-      <main style={{ position:'relative', zIndex:1, flex:1, maxWidth:1280, width:'100%', margin:'0 auto', padding:'20px 28px' }}>
+      <main style={{ position:'relative', zIndex:1, flex:1, maxWidth:1280, width:'100%', margin:'0 auto', padding: sm ? '14px 14px' : '20px 28px' }}>
 
         {error && (
           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'11px 16px', borderRadius:11, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.22)', marginBottom:16 }}>

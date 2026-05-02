@@ -1,4 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
+
+function useW() {
+  const [w, setW] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { RefreshCcw, Search, Loader2, AlertCircle } from 'lucide-react';
@@ -58,6 +68,9 @@ function SocBar({ soc }) {
 const COLS = ['#','Vehicle No.','Make / Model','SoC','Last Seen','Status'];
 
 export default function CustomerDashboard({ user, onLogout }) {
+  const w = useW();
+  const sm = w < 640;
+
   const [vehicles,   setVehicles]   = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,7 +105,7 @@ export default function CustomerDashboard({ user, onLogout }) {
 
       <Header user={user} onLogout={onLogout} />
 
-      <main style={{ position:'relative', zIndex:1, flex:1, maxWidth:1200, width:'100%', margin:'0 auto', padding:'32px 20px' }}>
+      <main style={{ position:'relative', zIndex:1, flex:1, maxWidth:1200, width:'100%', margin:'0 auto', padding: sm ? '20px 14px' : '32px 20px' }}>
 
         <div style={{ marginBottom:28 }}>
           <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:4 }}>

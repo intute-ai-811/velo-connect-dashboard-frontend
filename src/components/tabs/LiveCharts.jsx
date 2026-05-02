@@ -32,6 +32,16 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+function useW() {
+  const [w, setW] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
+
 function toPoint(d) {
   return {
     ts:              d?.recorded_at ? new Date(d.recorded_at).getTime() : Date.now(),
@@ -204,6 +214,9 @@ const Blobs = memo(function Blobs() {
    MAIN COMPONENT
 ═══════════════════════════════════════════════ */
 export default function LiveCharts({ vehicleId }) {
+  const w = useW();
+  const sm = w < 640;
+
   const [chartData,  setChartData]  = useState([]);
   const [connected,  setConnected]  = useState(false);
   const [lastPacket, setLastPacket] = useState(null);
@@ -283,12 +296,12 @@ export default function LiveCharts({ vehicleId }) {
         </div>
 
         {/* ── HERO ROW: Speed + SoC ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: sm ? '1fr' : '1fr 1fr', gap: 12 }}>
           {LARGE_CHARTS.map(cfg => <ChartCard key={cfg.key} cfg={cfg} data={chartData} />)}
         </div>
 
         {/* ── SECONDARY ROW: Current + RPM + Temp ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: sm ? '1fr' : w < 1024 ? '1fr 1fr' : '1fr 1fr 1fr', gap: 12 }}>
           {SMALL_CHARTS.map(cfg => <ChartCard key={cfg.key} cfg={cfg} data={chartData} />)}
         </div>
 

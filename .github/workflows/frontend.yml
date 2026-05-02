@@ -19,8 +19,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # VITE_API_BASE_URL must be injected here — Vite bakes env vars into the
+      # bundle at build time. Without this the variable is undefined in production
+      # and all API calls fall back to the frontend's own origin (CloudFront).
       - name: Build project
         run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -29,12 +34,38 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Upload to S3
+      # index.html — no-cache so browsers always fetch the latest shell after a deploy
+      - name: Upload index.html (no-cache)
         run: |
-          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
+          aws s3 cp dist/index.html \
+            s3://${{ secrets.AWS_S3_BUCKET }}/index.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/html; charset=utf-8"
 
-      - name: Invalidate CloudFront
+      # Hashed JS / CSS / fonts / images — immutable, 1-year TTL
+      # Vite appends a content hash to every asset filename so they are safe to
+      # cache forever. Old files are removed by --delete on the full sync below.
+      - name: Upload hashed assets (long cache)
+        run: |
+          aws s3 sync dist/assets/ \
+            s3://${{ secrets.AWS_S3_BUCKET }}/assets/ \
+            --cache-control "public, max-age=31536000, immutable" \
+            --delete
+
+      # Sync everything else (favicon, manifest, etc.) with a short cache
+      - name: Upload remaining static files
+        run: |
+          aws s3 sync dist/ \
+            s3://${{ secrets.AWS_S3_BUCKET }} \
+            --exclude "index.html" \
+            --exclude "assets/*" \
+            --cache-control "public, max-age=86400" \
+            --delete
+
+      # Invalidate only index.html — assets are content-hashed and never need
+      # invalidation. Invalidating /* wastes quota and costs money.
+      - name: Invalidate CloudFront index.html
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
+            --paths "/index.html"

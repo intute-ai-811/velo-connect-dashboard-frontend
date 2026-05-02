@@ -1,4 +1,14 @@
 import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
+
+function useW() {
+  const [w, setW] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
 import api, { apiUrl } from '../../api';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -185,6 +195,8 @@ export default function MapView({ vehicleId }) {
   }
 
   /* ── live status ── */
+  const w = useW();
+  const sm = w < 640;
   const live = useLiveStatus(connected, liveTs);
 
   /* ── stable date string ── */
@@ -288,7 +300,7 @@ export default function MapView({ vehicleId }) {
       )}
 
       {/* ── MAP ── */}
-      <div style={{ borderRadius: 18, overflow: 'hidden', border: `1px solid ${G.border}`, height: 560, position: 'relative', boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}>
+      <div style={{ borderRadius: 18, overflow: 'hidden', border: `1px solid ${G.border}`, height: sm ? 420 : 560, position: 'relative', boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}>
 
         {mode === 'live' && !livePos && !liveTrail.length ? (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(1,4,16,0.95)', gap: 14 }}>

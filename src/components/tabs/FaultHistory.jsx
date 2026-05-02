@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import api from '../../api';
 import { AlertTriangle, RefreshCw, ShieldCheck, Calendar, Clock, Activity } from 'lucide-react';
 
+function useW() {
+  const [w, setW] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
+
 const G = {
   bg:      '#060b18',
   card:    'rgba(255,255,255,0.035)',
@@ -65,14 +75,61 @@ function DateInput({ label, value, onChange }) {
   );
 }
 
-/* ── single fault event row ── */
-function EventRow({ evt, isLast }) {
+/* ── single fault event row — grid on desktop, card on mobile ── */
+function EventRow({ evt, isLast, mobile }) {
   const [hov, setHov] = useState(false);
   const act   = fmtDatetime(evt.activated_at);
   const deact = fmtDatetime(evt.deactivated_at);
   const dur   = fmtDuration(evt.duration_seconds);
   const soc   = evt.soc_at_activation   != null ? parseFloat(evt.soc_at_activation)   : null;
   const socD  = evt.soc_at_deactivation != null ? parseFloat(evt.soc_at_deactivation) : null;
+
+  /* ── MOBILE CARD ── */
+  if (mobile) {
+    return (
+      <div style={{
+        padding: '14px', margin: '0 10px 8px',
+        background: 'rgba(255,255,255,0.025)', border: `1px solid ${G.border}`,
+        borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 10,
+      }}>
+        {/* header: status + fault code */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <div style={{ width: 22, height: 22, borderRadius: 6, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertTriangle style={{ width: 10, height: 10, color: G.red }} />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(252,165,165,0.85)', lineHeight: 1.4, wordBreak: 'break-all' }}>{evt.fault_code}</span>
+          </div>
+          {evt.is_active ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 800, color: G.red, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 20, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <span style={{ width: 4, height: 4, borderRadius: '50%', background: G.red, display: 'inline-block', animation: 'faultPing 1.4s ease-out infinite' }} />ACTIVE
+            </span>
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 800, color: G.green, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 20, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <span style={{ width: 4, height: 4, borderRadius: '50%', background: G.green, display: 'inline-block' }} />RESOLVED
+            </span>
+          )}
+        </div>
+        {/* timestamps + duration */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div>
+            <span style={{ fontSize: 8, fontWeight: 700, color: G.dim, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Activated</span>
+            {act && <><div style={{ fontSize: 11, fontWeight: 600, color: G.sub }}>{act.date}</div><div style={{ fontSize: 10, color: G.dim }}>{act.time}</div></>}
+          </div>
+          <div>
+            <span style={{ fontSize: 8, fontWeight: 700, color: G.dim, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Deactivated</span>
+            {deact ? <><div style={{ fontSize: 11, fontWeight: 600, color: G.sub }}>{deact.date}</div><div style={{ fontSize: 10, color: G.dim }}>{deact.time}</div></> : <span style={{ fontSize: 11, color: 'rgba(248,113,113,0.45)', fontStyle: 'italic' }}>Still active</span>}
+          </div>
+        </div>
+        {/* metrics */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, paddingTop: 8, borderTop: `1px solid ${G.border}` }}>
+          {dur && <div><span style={{ fontSize: 8, fontWeight: 700, color: G.dim, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Duration</span><span style={{ fontSize: 12, fontWeight: 700, color: evt.is_active ? G.orange : G.sub }}>{dur}</span></div>}
+          {soc != null && <div><span style={{ fontSize: 8, fontWeight: 700, color: G.dim, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>SoC ▲</span><span style={{ fontSize: 12, fontWeight: 700, color: socColor(soc) }}>{soc.toFixed(1)}%</span></div>}
+          {evt.speed_at_activation != null && <div><span style={{ fontSize: 8, fontWeight: 700, color: G.dim, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Speed ▲</span><span style={{ fontSize: 12, fontWeight: 700, color: G.text }}>{parseFloat(evt.speed_at_activation).toFixed(1)} <span style={{ fontSize: 9, color: G.dim }}>km/h</span></span></div>}
+        </div>
+      </div>
+    );
+  }
 
   const COLS = '110px 1fr 158px 158px 76px 96px 80px 96px 80px';
 
@@ -202,6 +259,9 @@ function SocStat({ value }) {
    MAIN COMPONENT
 ════════════════════════════════════════════════════════════ */
 export default function FaultHistory({ vehicleId }) {
+  const w = useW();
+  const mobile = w < 768;
+
   const [events,   setEvents]   = useState([]);
   const [total,    setTotal]    = useState(0);
   const [loading,  setLoading]  = useState(true);
@@ -311,26 +371,30 @@ export default function FaultHistory({ vehicleId }) {
         )}
 
         {!loading && events.length > 0 && (
-          <div style={{ overflowX: 'auto' }}>
-            {/* Column headers */}
-            <div style={{ display: 'grid', gridTemplateColumns: HEADER_COLS, borderBottom: `1px solid ${G.border}`, background: 'rgba(255,255,255,0.02)', minWidth: 900 }}>
-              {[
-                'Status', 'Fault Code',
-                'Activated At', 'Deactivated At', 'Duration',
-                'Speed ▲', 'SoC ▲', 'Speed ▼', 'SoC ▼',
-              ].map(col => (
-                <div key={col} style={{ padding: '11px 10px', fontSize: 9, fontWeight: 700, color: G.dim, letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                  {col}
+          <div style={{ overflowX: mobile ? 'visible' : 'auto' }}>
+            {/* Mobile: card list */}
+            {mobile ? (
+              <div style={{ paddingTop: 8, paddingBottom: 4 }}>
+                {events.map((evt, i) => (
+                  <EventRow key={evt.fault_event_id} evt={evt} isLast={i === events.length - 1} mobile={true} />
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* Column headers */}
+                <div style={{ display: 'grid', gridTemplateColumns: HEADER_COLS, borderBottom: `1px solid ${G.border}`, background: 'rgba(255,255,255,0.02)', minWidth: 900 }}>
+                  {['Status','Fault Code','Activated At','Deactivated At','Duration','Speed ▲','SoC ▲','Speed ▼','SoC ▼'].map(col => (
+                    <div key={col} style={{ padding: '11px 10px', fontSize: 9, fontWeight: 700, color: G.dim, letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{col}</div>
+                  ))}
                 </div>
-              ))}
-            </div>
-
-            {/* Rows */}
-            <div style={{ minWidth: 900 }}>
-              {events.map((evt, i) => (
-                <EventRow key={evt.fault_event_id} evt={evt} isLast={i === events.length - 1} />
-              ))}
-            </div>
+                {/* Rows */}
+                <div style={{ minWidth: 900 }}>
+                  {events.map((evt, i) => (
+                    <EventRow key={evt.fault_event_id} evt={evt} isLast={i === events.length - 1} mobile={false} />
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Footer: count + pagination */}
             <div style={{ padding: '10px 16px', borderTop: `1px solid ${G.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>

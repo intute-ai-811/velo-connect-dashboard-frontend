@@ -414,9 +414,12 @@ export default function LoginModal({ onLogin }) {
         <div className="dot-grid"/>
         <FloatingSquares/>
 
-        {/* ── Subtle drifting car silhouettes ── */}
-        <SideCarPanel side="left"/>
-        <SideCarPanel side="right"/>
+        {/* ── Drifting car silhouettes — hidden below 900px to keep form unobstructed ── */}
+        <div style={{ display: 'none' }} className="lm-cars">
+          <SideCarPanel side="left"/>
+          <SideCarPanel side="right"/>
+        </div>
+        <style>{`.lm-cars { display: none !important; } @media (min-width: 900px) { .lm-cars { display: block !important; } }`}</style>
 
         {/* ══════════ LANDING ══════════ */}
         {view === 'landing' && (

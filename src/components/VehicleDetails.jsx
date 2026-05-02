@@ -1,4 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+function useW() {
+  const [w, setW] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn, { passive: true });
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Radio, BarChart2, AlertTriangle, MapPin, Hash } from 'lucide-react';
 import Header from './Header';
@@ -19,6 +29,8 @@ export default function VehicleDetails({ user, onLogout }) {
   const { id }   = useParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState('live');
+  const w = useW();
+  const sm = w < 640;
 
   const vehicle = (() => { try { return JSON.parse(localStorage.getItem('selectedVehicle')); } catch { return null; } })();
   const tabs   = user?.role === 'admin' ? ADMIN_TABS : [ADMIN_TABS[0]];
@@ -47,8 +59,8 @@ export default function VehicleDetails({ user, onLogout }) {
         background: 'linear-gradient(180deg,rgba(37,99,235,0.07) 0%,rgba(1,3,14,0.4) 100%)',
         borderBottom: '1px solid rgba(37,99,235,0.1)',
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0 18px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: sm ? '0 12px' : '0 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: sm ? 10 : 16, padding: sm ? '12px 0 14px' : '16px 0 18px', flexWrap: 'wrap' }}>
 
             {/* Back button */}
             <button
@@ -90,8 +102,8 @@ export default function VehicleDetails({ user, onLogout }) {
               )}
             </div>
 
-            {/* ID chip */}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.14)', borderRadius: 9, flexShrink: 0 }}>
+            {/* ID chip — hidden on very small screens */}
+            <div style={{ marginLeft: 'auto', display: sm ? 'none' : 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.14)', borderRadius: 9, flexShrink: 0 }}>
               <Hash style={{ width: 10, height: 10, color: 'rgba(56,189,248,0.35)' }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(147,197,253,0.6)', fontVariantNumeric: 'tabular-nums' }}>{id}</span>
             </div>
@@ -111,8 +123,9 @@ export default function VehicleDetails({ user, onLogout }) {
         boxShadow: '0 4px 28px rgba(0,0,0,0.45)',
       }}>
         <div style={{ height: 1, background: 'linear-gradient(to right, transparent, rgba(37,99,235,0.28) 30%, rgba(14,165,233,0.38) 60%, transparent)' }} />
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 28px' }}>
-          <div style={{ display: 'flex', gap: 0 }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: sm ? '0 12px' : '0 28px' }}>
+          {/* overflow-x scroll lets all 4 tabs fit on narrow screens */}
+          <div style={{ display: 'flex', gap: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
             {tabs.map(({ id: tid, label, icon: Icon }) => {
               const active = tab === tid;
               return (
@@ -120,8 +133,9 @@ export default function VehicleDetails({ user, onLogout }) {
                   key={tid}
                   onClick={() => setTab(tid)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 7,
-                    padding: '12px 22px',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: sm ? '11px 14px' : '12px 22px',
+                    whiteSpace: 'nowrap', flexShrink: 0,
                     background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     fontSize: 12, fontWeight: active ? 700 : 500,
                     color: active ? '#38bdf8' : 'rgba(147,197,253,0.32)',
@@ -147,7 +161,7 @@ export default function VehicleDetails({ user, onLogout }) {
       </div>
 
       {/* ── Tab content ── */}
-      <main style={{ position: 'relative', zIndex: 1, flex: 1, maxWidth: 1280, width: '100%', margin: '0 auto', padding: '20px 28px 28px', animation: 'tabIn 0.28s ease both' }} key={tab}>
+      <main style={{ position: 'relative', zIndex: 1, flex: 1, maxWidth: 1280, width: '100%', margin: '0 auto', padding: sm ? '12px 10px 20px' : '20px 28px 28px', animation: 'tabIn 0.28s ease both' }} key={tab}>
         {tab === 'live'   && <LiveView    vehicleId={id} user={user} />}
         {tab === 'charts' && <LiveCharts  vehicleId={id} user={user} />}
         {tab === 'faults' && <FaultHistory vehicleId={id} />}
