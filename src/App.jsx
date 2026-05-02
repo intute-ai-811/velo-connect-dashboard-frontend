@@ -19,16 +19,26 @@ class ErrorBoundary extends Component {
     return { error };
   }
 
+  componentDidCatch(error, info) {
+    // Always log to console so devtools shows the real error
+    console.error('[ErrorBoundary] Render error:', error);
+    console.error('[ErrorBoundary] Component stack:', info?.componentStack);
+  }
+
   render() {
     if (!this.state.error) return this.props.children;
+
+    const msg   = this.state.error?.message || String(this.state.error);
+    const isDev = import.meta.env.DEV;
 
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: '#010408', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        padding: '16px',
       }}>
         <div style={{
-          maxWidth: 440, width: '100%', margin: '0 16px',
+          maxWidth: 520, width: '100%',
           background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.22)',
           borderRadius: 16, padding: '32px 28px', textAlign: 'center',
         }}>
@@ -39,6 +49,15 @@ class ErrorBoundary extends Component {
           <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(252,165,165,0.55)', lineHeight: 1.5 }}>
             An unexpected error occurred. Please refresh the page or contact support if the problem persists.
           </p>
+          {/* Show error detail in all environments so it can be diagnosed */}
+          <pre style={{
+            margin: '0 0 20px', padding: '12px 14px', borderRadius: 10, textAlign: 'left',
+            background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(239,68,68,0.18)',
+            fontSize: 11, color: 'rgba(252,165,165,0.65)', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+            maxHeight: 160, overflowY: 'auto', fontFamily: 'monospace',
+          }}>
+            {msg}
+          </pre>
           <button
             onClick={() => window.location.reload()}
             style={{

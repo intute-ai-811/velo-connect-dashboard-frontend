@@ -125,7 +125,8 @@ export default function VehicleDetails({ user, onLogout }) {
         <div style={{ height: 1, background: 'linear-gradient(to right, transparent, rgba(37,99,235,0.28) 30%, rgba(14,165,233,0.38) 60%, transparent)' }} />
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: sm ? '0 12px' : '0 28px' }}>
           {/* overflow-x scroll lets all 4 tabs fit on narrow screens */}
-          <div style={{ display: 'flex', gap: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <style>{`.vc-tabs::-webkit-scrollbar{display:none}`}</style>
+          <div className="vc-tabs" style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
             {tabs.map(({ id: tid, label, icon: Icon }) => {
               const active = tab === tid;
               return (
