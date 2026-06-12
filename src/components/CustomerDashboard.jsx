@@ -134,7 +134,7 @@ export default function CustomerDashboard({ user, onLogout }) {
     const q = search.toLowerCase();
     return q
       ? v.filter(x =>
-          [x.vehicle_no, x.vehicle_unique_id, x.make, x.model]
+          [x.vehicle_no, x.make, x.model]
             .some(f => f?.toLowerCase().includes(q))
         )
       : v;
@@ -157,7 +157,7 @@ export default function CustomerDashboard({ user, onLogout }) {
     } catch (err) {
       console.warn('[CustomerDashboard] localStorage write failed:', err);
     }
-    navigate(`/vehicle/${v.vehicle_master_id}`);
+    navigate(`/vehicle/${v.vehicle_no}`);
   };
 
   const vehicleCount = (vehicles ?? []).length;
@@ -252,7 +252,7 @@ export default function CustomerDashboard({ user, onLogout }) {
                   const status = statusOf(v.last_seen);
                   return (
                     <tr
-                      key={v.vehicle_master_id}
+                      key={v.vehicle_no}
                       onClick={() => handleRowClick(v)}
                       style={{ borderBottom: `1px solid rgba(37,99,235,0.07)`, cursor: 'pointer', transition: 'background 0.15s' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.06)')}
@@ -262,7 +262,7 @@ export default function CustomerDashboard({ user, onLogout }) {
                         {(page - 1) * PAGE_SIZE + idx + 1}
                       </td>
                       <td style={{ padding: '14px 20px', fontWeight: 600, fontSize: 13, color: T.text }}>
-                        {v.vehicle_no || v.vehicle_unique_id}
+                        {v.vehicle_no || '—'}
                       </td>
                       <td style={{ padding: '14px 20px', fontSize: 13, color: 'rgba(147,197,253,0.6)' }}>
                         {[v.make, v.model].filter(Boolean).join(' ') || '—'}

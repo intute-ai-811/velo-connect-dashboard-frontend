@@ -35,7 +35,7 @@ export default function VehicleDetails({ user, onLogout }) {
   const vehicle = (() => { try { return JSON.parse(localStorage.getItem('selectedVehicle')); } catch { return null; } })();
   const tabs   = user?.role === 'admin' ? ADMIN_TABS : [ADMIN_TABS[0]];
   const backTo = user?.role === 'admin' ? '/admin' : '/dashboard';
-  const name   = vehicle?.vehicle_no || vehicle?.vehicle_unique_id || `Vehicle #${id}`;
+  const name   = vehicle?.vehicle_no || `Vehicle ${id}`;
   const sub    = [vehicle?.make, vehicle?.model].filter(Boolean).join(' · ');
 
   return (

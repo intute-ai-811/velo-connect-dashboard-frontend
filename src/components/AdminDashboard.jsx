@@ -185,7 +185,7 @@ export default function AdminDashboard({ user, onLogout }) {
     const q = search.toLowerCase();
     return q
       ? v.filter(x =>
-          [x.vehicle_no, x.vehicle_unique_id, x.company_name, x.make, x.model]
+          [x.vehicle_no, x.company_name, x.make, x.model]
             .some(f => f?.toLowerCase().includes(q))
         )
       : v;
@@ -219,7 +219,7 @@ export default function AdminDashboard({ user, onLogout }) {
     } catch (err) {
       console.warn('[AdminDashboard] localStorage write failed:', err);
     }
-    navigate(`/vehicle/${v.vehicle_master_id}`);
+    navigate(`/vehicle/${v.vehicle_no}`);
   };
 
   return (
@@ -328,7 +328,7 @@ export default function AdminDashboard({ user, onLogout }) {
                   const isOnline = status === 'online';
                   return (
                     <tr
-                      key={v.vehicle_master_id}
+                      key={v.vehicle_no}
                       onClick={() => handleRowClick(v)}
                       style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', transition: 'background 0.15s', background: isOnline ? 'rgba(34,197,94,0.025)' : 'transparent' }}
                       onMouseEnter={e => (e.currentTarget.style.background = isOnline ? 'rgba(34,197,94,0.055)' : 'rgba(37,99,235,0.07)')}
@@ -343,14 +343,9 @@ export default function AdminDashboard({ user, onLogout }) {
                       <td style={{ padding: '14px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,rgba(37,99,235,0.35),rgba(14,165,233,0.2))', border: '1px solid rgba(37,99,235,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'rgba(186,230,253,0.9)', flexShrink: 0 }}>
-                            {(v.vehicle_no || v.vehicle_unique_id || '?')[0]}
+                            {(v.vehicle_no || '?')[0]}
                           </div>
-                          <div>
-                            <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'rgba(220,240,255,0.95)' }}>{v.vehicle_no || v.vehicle_unique_id}</p>
-                            {v.vehicle_no && v.vehicle_unique_id && v.vehicle_no !== v.vehicle_unique_id && (
-                              <p style={{ margin: '1px 0 0', fontSize: 10, color: 'rgba(100,160,220,0.5)', fontFamily: 'monospace' }}>{v.vehicle_unique_id}</p>
-                            )}
-                          </div>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'rgba(220,240,255,0.95)' }}>{v.vehicle_no || '—'}</p>
                         </div>
                       </td>
 
