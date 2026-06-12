@@ -4,6 +4,10 @@
 --              vehicle_no (registration number) as the natural primary key.
 --              Also migrates live_values and fault_events FK references.
 --
+-- WARNING: This migration is IRREVERSIBLE. It drops vehicle_master_id columns
+-- and all indexes that reference them. There is no down migration.
+-- Take a full database backup before running this in production.
+--
 -- NOTE: This migration handles existing data by populating vehicle_no
 -- in dependent tables via a JOIN before dropping the old FK columns.
 -- If tables are truly empty, the UPDATE steps are no-ops but are safe to include.
@@ -55,6 +59,11 @@ ALTER TABLE vehicle_master DROP COLUMN IF EXISTS vehicle_unique_id;
 ALTER TABLE vehicle_master ALTER COLUMN vehicle_no SET NOT NULL;
 ALTER TABLE vehicle_master ADD CONSTRAINT vehicle_master_pkey PRIMARY KEY (vehicle_no);
 
+-- SAFETY: Before running NOT NULL constraints, verify no orphaned rows remain:
+-- SELECT COUNT(*) FROM live_values  WHERE vehicle_no IS NULL;
+-- SELECT COUNT(*) FROM fault_events WHERE vehicle_no IS NULL;
+-- Both must return 0. If not, investigate orphaned FK data before proceeding.
+
 -- 8. Make vehicle_no NOT NULL in dependent tables and add FKs
 ALTER TABLE live_values ALTER COLUMN vehicle_no SET NOT NULL;
 ALTER TABLE live_values ADD CONSTRAINT live_values_vehicle_no_fkey
@@ -76,9 +85,6 @@ CREATE INDEX IF NOT EXISTS live_values_vehicle_no_time_idx
 -- 11. Recreate supporting indexes using vehicle_no
 CREATE INDEX IF NOT EXISTS idx_fault_events_vehicle_time
   ON fault_events (vehicle_no, activated_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_live_values_vehicle_time
-  ON live_values (vehicle_no, recorded_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_live_values_faults
   ON live_values (vehicle_no, recorded_at DESC)
@@ -110,6 +116,6 @@ CREATE VIEW v_fault_events AS
       ELSE NULL::integer
     END AS duration_seconds,
     (deactivated_at IS NULL) AS is_active
-  FROM fault_events fe;
+  FROM fault_events;
 
 COMMIT;
