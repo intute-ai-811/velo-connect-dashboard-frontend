@@ -15,7 +15,7 @@ const T = {
   textMuted: 'rgba(56,189,248,0.22)',
 };
 
-const EMPTY = { vehicle_unique_id:'', vehicle_no:'', make:'', model:'', customer_id:'', date_of_deployment:'' };
+const EMPTY = { vehicle_no:'', make:'', model:'', customer_id:'', date_of_deployment:'' };
 
 export default function VehicleMaster({ user, onLogout }) {
   const [vehicles,  setVehicles]  = useState([]);
@@ -34,26 +34,26 @@ export default function VehicleMaster({ user, onLogout }) {
   useEffect(() => { load(); }, []);
 
   function openCreate() { setForm(EMPTY); setError(''); setModal('create'); }
-  function openEdit(v) { setForm({ vehicle_unique_id:v.vehicle_unique_id, vehicle_no:v.vehicle_no||'', make:v.make||'', model:v.model||'', customer_id:v.customer_id||'', date_of_deployment:v.date_of_deployment?v.date_of_deployment.split('T')[0]:'' }); setError(''); setModal({ vehicle_master_id:v.vehicle_master_id }); }
+  function openEdit(v) { setForm({ vehicle_no:v.vehicle_no, make:v.make||'', model:v.model||'', customer_id:v.customer_id||'', date_of_deployment:v.date_of_deployment?v.date_of_deployment.split('T')[0]:'' }); setError(''); setModal({ vehicle_no:v.vehicle_no }); }
 
   async function handleSave() {
     setSaving(true); setError('');
     try {
       const payload = { ...form, customer_id:form.customer_id||null };
-      modal==='create' ? await api.post('/api/admin/vehicles',payload) : await api.put(`/api/admin/vehicles/${modal.vehicle_master_id}`,payload);
+      modal==='create' ? await api.post('/api/admin/vehicles',payload) : await api.put(`/api/admin/vehicles/${modal.vehicle_no}`,payload);
       setModal(null); load();
     } catch(e) { setError(e.response?.data?.error||'Save failed'); }
     finally { setSaving(false); }
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(vehicleNo) {
     if (!confirm('Delete this vehicle? All telemetry data will be removed.')) return;
-    try { await api.delete(`/api/admin/vehicles/${id}`); load(); }
+    try { await api.delete(`/api/admin/vehicles/${vehicleNo}`); load(); }
     catch(e) { alert(e.response?.data?.error||'Delete failed'); }
   }
 
   const f = key => val => setForm({...form,[key]:val});
-  const COLS = ['Device ID','Reg. No.','Make / Model','Customer','Deployed',''];
+  const COLS = ['Reg. No.','Make / Model','Customer','Deployed',''];
 
   return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', background:T.bg, color:T.text, fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', position:'relative' }}>
@@ -82,28 +82,27 @@ export default function VehicleMaster({ user, onLogout }) {
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead>
                 <tr style={{ borderBottom:`1px solid ${T.border}`, background:'rgba(37,99,235,0.04)' }}>
-                  {COLS.map((c,i) => <th key={i} style={{ padding:'14px 20px', textAlign:i===5?'right':'left', fontSize:10, fontWeight:700, color:T.textMuted, textTransform:'uppercase', letterSpacing:'0.14em', whiteSpace:'nowrap' }}>{c}</th>)}
+                  {COLS.map((c,i) => <th key={i} style={{ padding:'14px 20px', textAlign:i===4?'right':'left', fontSize:10, fontWeight:700, color:T.textMuted, textTransform:'uppercase', letterSpacing:'0.14em', whiteSpace:'nowrap' }}>{c}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} style={{ padding:'80px', textAlign:'center' }}>
+                  <tr><td colSpan={5} style={{ padding:'80px', textAlign:'center' }}>
                     <div style={{ width:28,height:28,border:'2px solid rgba(37,99,235,0.25)',borderTopColor:'#2563eb',borderRadius:'50%',animation:'spin 0.7s linear infinite',margin:'0 auto 12px' }}/>
                     <p style={{ color:T.textSub, fontSize:13 }}>Loading vehicles…</p>
                   </td></tr>
                 ) : vehicles.length===0 ? (
-                  <tr><td colSpan={6} style={{ padding:'80px', textAlign:'center' }}>
+                  <tr><td colSpan={5} style={{ padding:'80px', textAlign:'center' }}>
                     <div style={{ width:48,height:48,borderRadius:14,background:'rgba(37,99,235,0.08)',border:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px' }}>
                       <Truck style={{ width:22,height:22,color:T.textMuted }}/>
                     </div>
                     <p style={{ color:T.textMuted, fontSize:13 }}>No vehicles yet. Add one to get started.</p>
                   </td></tr>
                 ) : vehicles.map(v => (
-                  <tr key={v.vehicle_master_id} style={{ borderBottom:`1px solid rgba(37,99,235,0.07)`, transition:'background 0.15s' }}
+                  <tr key={v.vehicle_no} style={{ borderBottom:`1px solid rgba(37,99,235,0.07)`, transition:'background 0.15s' }}
                     onMouseEnter={e=>(e.currentTarget.style.background='rgba(37,99,235,0.05)')}
                     onMouseLeave={e=>(e.currentTarget.style.background='transparent')}
                   >
-                    <td style={{ padding:'13px 20px', fontFamily:'monospace', fontSize:12, color:T.textSub }}>{v.vehicle_unique_id}</td>
                     <td style={{ padding:'13px 20px', fontWeight:600, fontSize:13, color:T.text }}>{v.vehicle_no||'—'}</td>
                     <td style={{ padding:'13px 20px', fontSize:13, color:'rgba(147,197,253,0.6)' }}>{[v.make,v.model].filter(Boolean).join(' ')||'—'}</td>
                     <td style={{ padding:'13px 20px', fontSize:13, color:T.textSub }}>{v.company_name||'—'}</td>
@@ -111,7 +110,7 @@ export default function VehicleMaster({ user, onLogout }) {
                     <td style={{ padding:'13px 20px', textAlign:'right' }}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}>
                         <IBtn icon={Pencil} onClick={()=>openEdit(v)} color="#38bdf8"/>
-                        <IBtn icon={Trash2} onClick={()=>handleDelete(v.vehicle_master_id)} color="#f87171"/>
+                        <IBtn icon={Trash2} onClick={()=>handleDelete(v.vehicle_no)} color="#f87171"/>
                       </div>
                     </td>
                   </tr>
@@ -125,8 +124,7 @@ export default function VehicleMaster({ user, onLogout }) {
       <FooterFixed />
 
       <Modal open={modal!==null} title={modal==='create'?'Add Vehicle':'Edit Vehicle'} onClose={()=>setModal(null)} onSave={handleSave} saving={saving} error={error}>
-        <Field label="Device / Unique ID *" value={form.vehicle_unique_id} onChange={f('vehicle_unique_id')} disabled={modal!=='create'} placeholder="e.g. VH-001"/>
-        <Field label="Registration No."     value={form.vehicle_no}        onChange={f('vehicle_no')}/>
+        <Field label="Registration No. *" value={form.vehicle_no} onChange={f('vehicle_no')} disabled={modal!=='create'} placeholder="e.g. MH12AB1234"/>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
           <Field label="Make"  value={form.make}  onChange={f('make')}/>
           <Field label="Model" value={form.model} onChange={f('model')}/>
